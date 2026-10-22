@@ -22,6 +22,11 @@ from pathlib import Path
 NAME = "notification-tester"
 PACKAGE = Path("system/apps/notification_tester")
 OWNER = "notification-tester-portable-v1"
+# The platform notifier's send call in the Studio versions this installer knows; the copy goes right after it.
+NOTIFIER_CALL_SITES = (
+    "    is_accepted = notify(\n        args.message, args.title, http=HttpClient(), environ=dict(os.environ)\n    )\n",
+    "    is_accepted = notify(args.message, args.title, http=http, environ=environ)\n",
+)
 
 
 class InstallError(Exception):
@@ -68,13 +73,13 @@ def integration(root: Path) -> None:
     if "copy_to_notification_tester(" in original or "# notification-tester portable copy" in original:
         sys.stdout.write("Existing chat forwarding kept.\n")
         return
-    anchor = "    is_accepted = notify(args.message, args.title, http=http, environ=environ)\n"
-    if original.count(anchor) != 1:
+    anchor = next((a for a in NOTIFIER_CALL_SITES if original.count(a) == 1), None)
+    if anchor is None:
         sys.stderr.write("Chat forwarding skipped: notifier version has a different call site. See docs/installation.md.\n")
         return
-    backup = root / "data/.state/notification-tester-install/notifier-before-forwarding.py"
-    if not backup.exists():
-        backup.write_text(original)
+    if "_REPO_ROOT =" not in original:
+        sys.stderr.write("Chat forwarding skipped: notifier has no root locator.\n")
+        return
     hook = (
         "    # notification-tester portable copy (Studio delivery above stays authoritative)\n"
         "    try:\n"
@@ -83,11 +88,12 @@ def integration(root: Path) -> None:
         "    except (OSError, ValueError, ImportError, KeyError) as exc:\n"
         "        sys.stderr.write(f\"notification-tester: optional forwarding unavailable ({type(exc).__name__})\\n\")\n"
     )
-    if "_REPO_ROOT =" not in original:
-        sys.stderr.write("Chat forwarding skipped: notifier has no root locator.\n")
-        return
     updated = original.replace(anchor, anchor + hook)
     compile(updated, str(notifier), "exec")
+    backup = root / "data/.state/notification-tester-install/notifier-before-forwarding.py"
+    check_plain_path(backup, root)
+    if not backup.exists():
+        backup.write_text(original)
     notifier.write_text(updated)
 
 
@@ -167,11 +173,18 @@ def install(args: argparse.Namespace) -> None:
             raise InstallError("No usable port; specify --port between 1024 and 65535.")
         if port in reserved or (port != old_port and not free_port(port)):
             raise InstallError("Requested port is already in use.")
+        claim = json.dumps({"owner": OWNER, "root": str(root), "port": port}, indent=2) + "\n"
+        # Claim ownership before the first change lands, so a run that fails part-way
+        # (dependencies, validation, startup) can simply be repeated once the cause is fixed.
+        # An adopted, unmarked service configuration is claimed only once it has been regenerated.
+        if not (config.exists() and f"; Managed by {OWNER}" not in config.read_text()):
+            receipt_path.write_text(claim)
         # Do not erase stale files or touch data. Copy only app-owned source files.
         if dest.resolve() != source:
             for original in sorted(source.rglob("*")):
                 relative = original.relative_to(source)
-                if any(p in {".git", ".venv", "__pycache__", ".pytest_cache", ".ty_cache", "data"} for p in relative.parts):
+                if any(p in {".git", ".venv", "__pycache__", ".pytest_cache", ".ty_cache", "data"} or p.endswith(".egg-info")
+                       for p in relative.parts):
                     continue
                 if original.is_symlink():
                     raise InstallError(f"Unexpected source symlink: {relative}")
@@ -220,8 +233,8 @@ def install(args: argparse.Namespace) -> None:
             f"stdout_logfile={log_dir / (NAME + '-stdout.log')}\nstderr_logfile={log_dir / (NAME + '-stderr.log')}\n"
             "stdout_logfile_maxbytes=10MB\nstderr_logfile_maxbytes=10MB\nstdout_logfile_backups=3\nstderr_logfile_backups=3\n"
         )
+        receipt_path.write_text(claim)
         run(["uv", "run", "--no-sync", "app-manifest", "validate-manifest", str(dest / "app.toml")], root, env)
-        receipt_path.write_text(json.dumps({"owner": OWNER, "root": str(root), "port": port}, indent=2) + "\n")
         ctl = ["supervisorctl"] + (["-c", str(args.supervisor_config.resolve())] if args.supervisor_config else [])
         run(ctl + ["reread"], root, env)
         run(ctl + ["update", NAME], root, env)
@@ -239,7 +252,8 @@ def install(args: argparse.Namespace) -> None:
                 if healthy:
                     break
             except (OSError, ValueError, urllib.error.URLError):
-                threading.Event().wait(0.2)
+                pass
+            threading.Event().wait(0.2)
         if not healthy:
             raise InstallError(f"Service did not become healthy; inspect {log_dir}.")
         if args.enable_chat_forwarding:

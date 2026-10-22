@@ -70,6 +70,7 @@ that layout back to the target Studio app directory. Exporting requires the
 authoritative monorepo; it is not a tool for importing workspace history into a
 standalone copy.
 
-This is the initial portable package. Full hardening and cross-browser coverage
-are deliberately deferred until after initial publication. The existing tests
-travel with the app; installation checks are described in the operations guide.
+The tests travel with the app: `uv run pytest system/apps/notification_tester`
+from the Studio root runs the API, browser, installer and export checks against
+scratch data. What they cannot check (how a real phone presents a notification)
+is covered in the browser guide.

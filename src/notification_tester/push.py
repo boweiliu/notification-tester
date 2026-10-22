@@ -9,11 +9,9 @@ from urllib.parse import urlparse
 import requests
 from cryptography.hazmat.primitives import serialization
 from py_vapid import Vapid
-from pywebpush import WebPushException
-from pywebpush import webpush
+from pywebpush import WebPushException, webpush
 
-from notification_tester.store import PushSubscription
-from notification_tester.store import RawPushResponse
+from notification_tester.store import PushSubscription, RawPushResponse
 
 # The contact the push service sees in the signed claim. It must be a mailto: or https: URL;
 # nothing is ever sent to it.
@@ -48,6 +46,8 @@ class VapidKeys:
             vapid = Vapid()
             vapid.generate_keys()
             vapid.save_key(str(self._key_path))
+            # The private key signs every push, so only the app's own user may read it.
+            self._key_path.chmod(0o600)
         self._vapid = Vapid.from_file(str(self._key_path))
 
     @property

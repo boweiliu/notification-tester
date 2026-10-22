@@ -96,6 +96,10 @@ async function registerWorker() {
   }
 }
 
+function isInstalledAsApp() {
+  return ["standalone", "fullscreen", "minimal-ui"].some((mode) => matchMedia(`(display-mode: ${mode})`).matches);
+}
+
 async function refreshStatus() {
   const hasNotifications = "Notification" in window;
   const permission = hasNotifications ? Notification.permission : "unsupported";
@@ -108,7 +112,7 @@ async function refreshStatus() {
   setStatus("status-buttons", maxActions ? "ok" : maxActions === 0 ? "bad" : "off",
     maxActions === null ? "This browser doesn't say; send a Yes / No to find out" : maxActions === 0 ? "None" : `Up to ${maxActions}`);
 
-  const isInstalled = matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches || matchMedia("(display-mode: minimal-ui)").matches;
+  const isInstalled = isInstalledAsApp();
   setStatus("status-installed", isInstalled ? "ok" : "warn", isInstalled ? "Yes, opened as an app" : "No, running in a browser tab");
 
   let subscription = null;
@@ -186,12 +190,7 @@ function setupTips(permission, isInstalled) {
 async function allowNotifications() {
   if (!("Notification" in window)) return logEvent("This browser has no notifications.", true);
   if (Notification.permission === "denied") {
-    const maxActions = hasNotifications && Notification.maxActions !== undefined ? Notification.maxActions : null;
-  setStatus("status-buttons", maxActions ? "ok" : maxActions === 0 ? "bad" : "off",
-    maxActions === null ? "This browser doesn't say; send a Yes / No to find out" : maxActions === 0 ? "None" : `Up to ${maxActions}`);
-
-  const isInstalled = matchMedia("(display-mode: standalone)").matches;
-    logEvent(blockedFix(detectBrowser(), detectPlatform(), isInstalled), true);
+    logEvent(blockedFix(detectBrowser(), detectPlatform(), isInstalledAsApp()), true);
     $("hint").scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }

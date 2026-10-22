@@ -4,7 +4,7 @@ import json
 import queue
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Generator
 
 from imbue.imbue_common.frozen_model import FrozenModel
 from pydantic import Field
@@ -67,7 +67,7 @@ class LiveHub:
             connection.messages.put(message)
         return len(connections)
 
-    def stream(self, device_id: str, name: str) -> Iterator[str]:
+    def stream(self, device_id: str, name: str) -> Generator[str, None, None]:
         """The server-sent event stream one open page reads, for as long as it stays connected."""
         connection = _Connection(name)
         with self._lock:

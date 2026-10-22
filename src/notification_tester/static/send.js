@@ -101,7 +101,7 @@ async function loadSends() {
     const fromChat = s.source === "chat" ? '<span class="tag chat">From chat</span>' : "";
     row.innerHTML = `${fromChat}<span class="tag ${s.via}">${s.via === "live" ? "Live" : "Push"}</span><strong></strong> to <span class="device"></span>
       <div class="meta">${time(s.created_at)}${s.delay_seconds ? ` (+${s.delay_seconds} s)` : ""} - <span class="${verdictClass} verdict"></span>${shown}
-      ${s.raw_response ? ` - <a href="/sends/${encodeURIComponent(s.send_id)}/raw">view raw response</a>` : ""}</div>`;
+ - <a class="raw-link" href="/sends/${encodeURIComponent(s.send_id)}/raw">${s.raw_response ? "view raw response" : "view raw record"}</a></div>`;
     row.querySelector("strong").textContent = s.title;
     row.querySelector(".device").textContent = s.device_name;
     row.querySelector(".verdict").textContent = s.status_detail;

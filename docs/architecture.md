@@ -37,13 +37,15 @@ timers and Live presence are in memory and are lost on restart.
 
 ## Raw records and diagnostic meaning
 
-The JSON store preserves device subscriptions, send requests, source (`manual`
+The JSON store preserves device subscriptions, send requests, source (`send page`
 or `chat`), source chat identifiers when supplied, provider response URL/status/
 headers/body, delivery receipts, actions, replies and versions. Device activity
 records preserve page and service worker diagnostics. These are operational
-records, not analytics that discard their source.
+records, not analytics that discard their source. The store keeps the newest
+2,000 sends (each with its provider response and receipts) and the newest 2,000
+device activity entries; older ones are dropped as new ones arrive.
 
-The send page links `/sends/<send_id>/raw`, which renders the stored record as
+The send page links every send to `/sends/<send_id>/raw`, which renders the stored record as
 pretty-printed JSON. `/api/sends` and `/api/device-log` expose the corresponding
 data. A provider acceptance is distinct from a `shown` receipt; a `shown` receipt
 means the browser's show call completed, not that the user saw or read an alert.

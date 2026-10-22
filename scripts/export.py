@@ -48,7 +48,9 @@ def main() -> None:
         "workspace, as described in docs/installation.md.\n"
     )
     (target / "EXPORT-MANIFEST.json").write_text(json.dumps(hashes, indent=2, sort_keys=True) + "\n")
-    (target / ".gitignore").write_text("__pycache__/\n*.pyc\n.venv/\n.pytest_cache/\n.ty_cache/\ndata/\n*.egg-info/\n")
+    if ".gitignore" not in hashes:
+        # A tracked .gitignore is exported (and listed in the manifest) as-is; never overwrite it.
+        (target / ".gitignore").write_text("__pycache__/\n*.pyc\n.venv/\n.pytest_cache/\n.ty_cache/\ndata/\n*.egg-info/\n")
 
 
 if __name__ == "__main__":

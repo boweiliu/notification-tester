@@ -3,9 +3,9 @@
 Run Studio commands from its root. The installed service is `notification-tester`.
 
 ```bash
-uv run supervisorctl status notification-tester
-uv run supervisorctl restart notification-tester
-uv run supervisorctl tail notification-tester stderr
+supervisorctl status notification-tester
+supervisorctl restart notification-tester
+supervisorctl tail notification-tester stderr
 uv run --no-sync workspace-layout list
 ```
 
@@ -27,8 +27,8 @@ There is currently no host override: the backend binds `127.0.0.1`.
 | --- | --- |
 | `vapid_private_key.pem` | Server signing key bound to existing subscriptions |
 | `devices.json` | Device identities and raw Push subscriptions |
-| `sends.json` | Request history, raw provider responses, receipts and interactions |
-| `device_log.json` | Receiving page and worker diagnostic events |
+| `sends.json` | Request history, raw provider responses, receipts and interactions (newest 2,000 sends) |
+| `device_log.json` | Receiving page and worker diagnostic events (newest 2,000 entries) |
 | `chat_forwarding.json` | Enabled/channel preferences |
 
 Back up the entire data directory privately, together with the app's stable
@@ -37,10 +37,10 @@ and generated service configuration for operational recovery. Never add data,
 subscriptions, logs or private keys to a source export or public template.
 
 Never delete or regenerate an existing VAPID key during installation or upgrade.
-The backend creates one only when the file is absent. Losing it invalidates the
-ability to use existing subscriptions; restore the original key or have every
-device subscribe again. Keep restrictive filesystem permissions and protect the
-backup as a secret. A code export is not a data backup.
+The backend creates one only when the file is absent, readable only by its
+owner. Losing it invalidates the ability to use existing subscriptions; restore
+the original key or have every device subscribe again. Keep restrictive
+filesystem permissions and protect the backup as a secret. A code export is not a data backup.
 
 For a consistent manual snapshot, stop this service, copy the data directory to
 a private disk-backed backup location, then restart it. Do not restore a snapshot
@@ -71,9 +71,14 @@ Use Playwright with a private browser context for page checks. Never point a
 verification send at real subscriptions, and never call the real platform
 notifier from an installation test.
 
-The included app tests predate portable packaging and remain available for the
-later hardening pass. This initial preparation intentionally does not claim full
-review gates, exhaustive installer tests, concurrent-process durability or a
-multi-user authorization model. JSON persistence and in-memory Live/timers are
+The package's tests cover the API routes and stored records over fresh data, the
+pages in a real Chromium against a throwaway server and a local stand-in push
+service, the installer against a scratch Studio root with its own supervisord,
+and the export. Run them from the Studio root with
+`uv run pytest system/apps/notification_tester`. They never touch the installed
+app's data or a real push service. They do not cover concurrent-process
+durability or a multi-user authorization model, and they cannot stand in for a
+real phone: OS presentation still needs the manual checks in the browser guide.
+JSON persistence and in-memory Live/timers are
 suited to a small single-workspace diagnostic app, not a delivery SLA. There is
 no automated migration, delayed-send recovery or cross-channel deduplication.

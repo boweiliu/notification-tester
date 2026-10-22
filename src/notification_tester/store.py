@@ -2,8 +2,7 @@
 
 import json
 import threading
-from datetime import datetime
-from datetime import timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
@@ -119,10 +118,12 @@ class DeviceLogEntry(FrozenModel):
 
 # The device log keeps only the newest entries.
 DEVICE_LOG_LIMIT = 2000
+# The send history keeps only the newest sends; an older one goes with its raw push-service answer and receipts.
+SEND_HISTORY_LIMIT = 2000
 
 
 class Store:
-    """Devices and sends, held in memory and written through to two JSON files."""
+    """Devices, sends, chat-forwarding settings and the device log, held in memory and written through to JSON files."""
 
     def __init__(self, data_dir: Path) -> None:
         self._devices_path = data_dir / "devices.json"
@@ -172,6 +173,9 @@ class Store:
     def put_send(self, record: SendRecord) -> None:
         with self._lock:
             self._sends[record.send_id] = record
+            if len(self._sends) > SEND_HISTORY_LIMIT:
+                newest = sorted(self._sends.values(), key=lambda s: s.created_at, reverse=True)[:SEND_HISTORY_LIMIT]
+                self._sends = {s.send_id: s for s in newest}
             self._save_sends()
 
     def update_send(self, send_id: str, **changes: object) -> SendRecord | None:

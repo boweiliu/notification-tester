@@ -47,34 +47,28 @@ from app_schema.api_schema import (
     SchemalessRoute,
     register_api_schema_route,
 )
-from app_schema.routes import error_response
-from app_schema.routes import model_response
-from app_schema.routes import parse_request_body
+from app_schema.routes import error_response, model_response, parse_request_body
 from flask import Flask, Response, abort, request, send_file
 from imbue.imbue_common.frozen_model import FrozenModel
 from pydantic import Field
 from werkzeug.serving import run_simple
 
-from notification_tester.live import LiveDevice
-from notification_tester.live import LiveHub
-from notification_tester.push import VapidKeys
-from notification_tester.push import push_service_name
-from notification_tester.push import send_push
-from notification_tester.store import ChatForwardingSettings
-from notification_tester.store import DeliveryChoice
-from notification_tester.store import Device
-from notification_tester.store import DeviceLogEntry
-from notification_tester.store import Interaction
-from notification_tester.store import PushSubscription
-from notification_tester.store import SendRecord
-from notification_tester.store import SendSource
-from notification_tester.store import SendVia
-from notification_tester.store import Store
-from notification_tester.store import now_iso
-from notification_tester.styles import ICON
-from notification_tester.styles import STYLES
-from notification_tester.styles import STYLES_BY_ID
-from notification_tester.styles import NotificationStyle
+from notification_tester.live import LiveDevice, LiveHub
+from notification_tester.push import VapidKeys, push_service_name, send_push
+from notification_tester.store import (
+    ChatForwardingSettings,
+    DeliveryChoice,
+    Device,
+    DeviceLogEntry,
+    Interaction,
+    PushSubscription,
+    SendRecord,
+    SendSource,
+    SendVia,
+    Store,
+    now_iso,
+)
+from notification_tester.styles import ICON, STYLES, STYLES_BY_ID, NotificationStyle
 
 # Persistent state for this app lives under DATA_DIR. It defaults to
 # ``data/.apps/notification-tester/`` but is overridable via the ``NOTIFICATION_TESTER_DATA_DIR`` env var

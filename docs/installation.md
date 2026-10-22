@@ -14,6 +14,9 @@
 - `imbue-common` declared by a pinned HTTPS git source or local path in the
   target root's `pyproject.toml`. `app-schema` and `app-manifest` are target
   workspace libraries. These names must not be assumed to exist on PyPI.
+- Studio's `notify-user` skill scripts (`.agents/skills/notify-user/scripts/notify_user.py`
+  and `notify_user_test.py`). The app's manifest names them, and Studio's
+  manifest validation refuses the install when they are missing.
 
 ```bash
 bash /path/to/notification-tester/install.sh --studio-root /home/user/workspace
